@@ -1025,9 +1025,15 @@ function showToast(msg) {
 // ── Chargement .ics ──────────────────────────────────────────────────────────
 async function loadIcs(url, type, sourceName) {
   try {
-    const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
-    const res = await fetch(proxy);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const proxies = [
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+      'https://corsproxy.io/?' + encodeURIComponent(url),
+    ];
+    let res, lastErr;
+    for (const p of proxies) {
+      try { res = await fetch(p); if (res.ok) break; } catch(e) { lastErr = e; }
+    }
+    if (!res || !res.ok) throw lastErr || new Error('Proxy indisponible');
     const text = await res.text();
     const blocks = text.split('BEGIN:VEVENT');
     const imported = [];
