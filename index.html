@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FamilyCal — Calendrier Familial</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #F5F3EE;
+      --surface:   #FFFFFF;
+      --surface2:  #EFEDE8;
+      --text:      #1A1917;
+      --text2:     #6B6860;
+      --text3:     #A8A59F;
+      --border:    #E0DDD8;
+      --accent:    #2D6A4F;
+      --accent-lt: #D8EDDF;
+
+      --col-enfant:   #1F6FEB;
+      --col-reunion:  #7C3AED;
+      --col-perso:    #059669;
+      --col-vacances: #D97706;
+
+      --r-sm: 6px;
+      --r-md: 10px;
+      --r-lg: 16px;
+      --r-xl: 24px;
+
+      --font-serif: 'DM Serif Display', serif;
+      --font-sans:  'DM Sans', sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:      #141413;
+        --surface: #1E1D1B;
+        --surface2:#2A2926;
+        --text:    #F0EEE9;
+        --text2:   #9A9890;
+        --text3:   #5C5A55;
+        --border:  #2E2D2A;
+        --accent-lt: #1A3D2B;
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+    }
+
+    /* ── Layout ──────────────────────────────── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────────────────────────── */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 28px 20px;
+      gap: 32px;
+    }
+    .logo {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .logo span { color: var(--accent); }
+
+    /* mini calendar */
+    .mini-cal {}
+    .mini-cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .mini-nav {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text2);
+      font-size: 16px;
+      padding: 4px 6px;
+      border-radius: var(--r-sm);
+    }
+    .mini-nav:hover { background: var(--surface2); color: var(--text); }
+    .mini-month-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      text-align: center;
+    }
+    .mini-day-name {
+      font-size: 10px;
+      color: var(--text3);
+      font-weight: 500;
+      padding: 3px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .mini-cell {
+      font-size: 12px;
+      padding: 5px 2px;
+      border-radius: 50%;
+      cursor: pointer;
+      color: var(--text2);
+      transition: all 0.1s;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mini-cell:hover { background: var(--surface2); color: var(--text); }
+    .mini-cell.today { background: var(--accent); color: #fff; font-weight: 600; }
+    .mini-cell.selected { background: var(--surface2); color: var(--text); font-weight: 500; }
+    .mini-cell.has-event { position: relative; }
+    .mini-cell.has-event::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    .mini-cell.today.has-event::after { background: rgba(255,255,255,0.7); }
+    .mini-cell.other-month { color: var(--text3); opacity: 0.5; }
+
+    /* Sources */
+    .sources-section {}
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text3);
+      margin-bottom: 10px;
+    }
+    .source-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--r-md);
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+    }
+    .source-item:hover { background: var(--surface2); }
+    .source-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: opacity 0.2s;
+    }
+    .source-name {
+      font-size: 13px;
+      color: var(--text);
+      flex: 1;
+    }
+    .source-toggle {
+      width: 28px;
+      height: 16px;
+      border-radius: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .source-toggle::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--text3);
+      top: 1px;
+      left: 1px;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .source-item.active .source-toggle { background: var(--accent-lt); border-color: var(--accent); }
+    .source-item.active .source-toggle::after { transform: translateX(12px); background: var(--accent); }
+
+    /* connect btn */
+    .connect-btn {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: var(--r-md);
+      border: 1px dashed var(--border);
+      background: none;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text2);
+      transition: all 0.15s;
+      width: 100%;
+    }
+    .connect-btn:hover { background: var(--surface2); border-color: var(--text3); color: var(--text); }
+
+    /* ── Main ────────────────────────────────── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+    .page-title {
+      font-family: var(--font-serif);
+      font-size: 24px;
+      letter-spacing: -0.3px;
+    }
+    .view-tabs {
+      display: flex;
+      background: var(--surface2);
+      border-radius: var(--r-md);
+      padding: 3px;
+      gap: 2px;
+    }
+    .view-tab {
+      padding: 5px 14px;
+      border-radius: var(--r-sm);
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text2);
+      transition: all 0.15s;
+    }
+    .view-tab.active {
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 500;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .topbar-right { display: flex; gap: 10px; align-items: center; }
+    .today-btn, .add-btn {
+      padding: 8px 16px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .today-btn:hover { background: var(--surface2); }
+    .add-btn {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      font-weight: 500;
+    }
+    .add-btn:hover { opacity: 0.88; }
+    .nav-arrows { display: flex; gap: 4px; }
+    .arrow-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--r-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .arrow-btn:hover { background: var(--surface2); color: var(--text); }
+
+    /* ── Calendar Grid ───────────────────────── */
+    .cal-container { flex: 1; padding: 20px 28px; overflow-y: auto; }
+
+    /* Month view */
+    .month-view {}
+    .month-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      margin-bottom: 4px;
+    }
+    .weekday-label {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 6px 0;
+    }
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+    .month-cell {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      min-height: 110px;
+      padding: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      position: relative;
+    }
+    .month-cell:hover { border-color: var(--text3); }
+    .month-cell.today {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .month-cell.selected { border-color: var(--col-perso); box-shadow: 0 0 0 1px var(--col-perso); }
+    .month-cell.other-month { background: var(--bg); opacity: 0.6; }
+    .cell-day-num {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      margin-bottom: 6px;
+    }
+    .today .cell-day-num {
+      background: var(--accent);
+      color: #fff;
+    }
+    .cell-event {
+      display: block;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 500;
+    }
+    .cell-event.enfant   { background: #EBF3FF; color: #1551A8; }
+    .cell-event.reunion  { background: #F0EBFF; color: #5B2FB5; }
+    .cell-event.perso    { background: #DCFCE7; color: #065F46; }
+    .cell-event.vacances { background: #FEF3C7; color: #92400E; }
+    @media (prefers-color-scheme: dark) {
+      .cell-event.enfant   { background: #1E3A6E; color: #93C5FD; }
+      .cell-event.reunion  { background: #3B1F6E; color: #C4B5FD; }
+      .cell-event.perso    { background: #134E35; color: #6EE7B7; }
+      .cell-event.vacances { background: #6B3B00; color: #FCD34D; }
+    }
+    .cell-more {
+      font-size: 11px;
+      color: var(--text3);
+      padding: 0 6px;
+    }
+
+    /* Week view */
+    .week-view { display: none; }
+    .week-header {
+      display: grid;
+      grid-template-columns: 56px repeat(7, 1fr);
+      gap: 3px;
+      margin-bottom: 4px;
+    }
+    .week-day-header {
+      text-align: center;
+      padding: 8px 4px;
+      border-radius: var(--r-sm);
+    }
+    .week-day-header.today { background: var(--accent-lt); }
+    .week-day-name { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    .week-day-num  { font-size: 20px; font-weight: 300; color: var(--text); margin-top: 2px; }
+    .week-day-header.today .week-day-num { color: var(--accent); font-weight: 600; }
+    .week-body {
+      display: grid;
+      grid-template-columns: 56px repeat(7, 1fr);
+      gap: 3px;
+    }
+    .week-time {
+      font-size: 11px;
+      color: var(--text3);
+      text-align: right;
+      padding-right: 10px;
+      height: 48px;
+      display: flex;
+      align-items: flex-start;
+      padding-top: 4px;
+    }
+    .week-slot {
+      border-top: 1px solid var(--border);
+      height: 48px;
+      padding: 2px;
+      position: relative;
+    }
+    .week-event {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Detail panel */
+    .detail-overlay {
+      position: fixed;
+      right: 0; top: 0; bottom: 0;
+      width: 320px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      padding: 24px 20px;
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+      z-index: 100;
+      overflow-y: auto;
+    }
+    .detail-overlay.open { transform: translateX(0); }
+    .detail-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: var(--surface2);
+      border: none;
+      border-radius: 50%;
+      width: 28px; height: 28px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .detail-close:hover { background: var(--border); }
+    .detail-date {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      margin-bottom: 20px;
+      padding-right: 32px;
+    }
+    .detail-ev {
+      display: flex;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+    }
+    .detail-ev:last-child { border-bottom: none; }
+    .detail-ev-color {
+      width: 4px;
+      border-radius: 2px;
+      align-self: stretch;
+      flex-shrink: 0;
+    }
+    .detail-ev-title { font-size: 14px; font-weight: 500; color: var(--text); }
+    .detail-ev-meta  { font-size: 12px; color: var(--text2); margin-top: 3px; }
+    .detail-ev-source {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .empty-day {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--text3);
+      font-size: 14px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: var(--r-xl);
+      padding: 28px;
+      width: 400px;
+      max-width: 95vw;
+      border: 1px solid var(--border);
+    }
+    .modal h2 { font-family: var(--font-serif); font-size: 20px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; display: block; }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--accent); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+    .btn-cancel, .btn-save {
+      padding: 9px 20px;
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--text);
+    }
+    .btn-save { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+    .btn-cancel:hover { background: var(--border); }
+    .btn-save:hover { opacity: 0.85; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--text);
+      color: var(--bg);
+      padding: 10px 20px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      z-index: 300;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Sync status */
+    .sync-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 28px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 12px;
+      color: var(--text3);
+    }
+    .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #22C55E; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+    /* Mobile */
+    @media (max-width: 720px) {
+      .sidebar { display: none; }
+      .month-cell { min-height: 60px; }
+      .topbar { padding: 14px 16px; }
+      .cal-container { padding: 12px 16px; }
+      .detail-overlay { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">Family<span>Cal</span></div>
+
+    <!-- Mini calendar -->
+    <div class="mini-cal">
+      <div class="mini-cal-header">
+        <button class="mini-nav" onclick="changeMonth(-1)">&#8249;</button>
+        <span class="mini-month-label" id="miniLabel"></span>
+        <button class="mini-nav" onclick="changeMonth(1)">&#8250;</button>
+      </div>
+      <div class="mini-grid" id="miniGrid"></div>
+    </div>
+
+    <!-- Sources -->
+    <div class="sources-section">
+      <div class="section-label">Sources</div>
+      <div id="sourcesList"></div>
+    </div>
+
+    <button class="connect-btn" onclick="openConnectGuide()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Connecter une source
+    </button>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="nav-arrows">
+          <button class="arrow-btn" onclick="changeMonth(-1)">&#8249;</button>
+          <button class="arrow-btn" onclick="changeMonth(1)">&#8250;</button>
+        </div>
+        <h1 class="page-title" id="mainTitle"></h1>
+      </div>
+      <div class="topbar-right">
+        <div class="view-tabs">
+          <button class="view-tab active" id="tab-month" onclick="setView('month')">Mois</button>
+          <button class="view-tab" id="tab-week" onclick="setView('week')">Semaine</button>
+        </div>
+        <button class="today-btn" onclick="goToday()">Aujourd'hui</button>
+        <button class="add-btn" onclick="openModal()">+ Ajouter</button>
+      </div>
+    </div>
+
+    <div class="cal-container">
+      <!-- Month view -->
+      <div class="month-view" id="monthView">
+        <div class="month-weekdays">
+          <div class="weekday-label">Lun</div>
+          <div class="weekday-label">Mar</div>
+          <div class="weekday-label">Mer</div>
+          <div class="weekday-label">Jeu</div>
+          <div class="weekday-label">Ven</div>
+          <div class="weekday-label">Sam</div>
+          <div class="weekday-label">Dim</div>
+        </div>
+        <div class="month-grid" id="monthGrid"></div>
+      </div>
+
+      <!-- Week view -->
+      <div class="week-view" id="weekView">
+        <div class="week-header" id="weekHeader"></div>
+        <div class="week-body" id="weekBody"></div>
+      </div>
+    </div>
+
+    <div class="sync-bar">
+      <div class="sync-dot"></div>
+      <span>Synchronisé — <span id="activeCount">4</span> sources actives &bull; Mis à jour il y a 2 min</span>
+      <span style="margin-left:auto; cursor:pointer; color:var(--text2)" onclick="openConnectGuide()">Voir les intégrations →</span>
+    </div>
+  </main>
+</div>
+
+<!-- Detail panel -->
+<div class="detail-overlay" id="detailPanel">
+  <button class="detail-close" onclick="closeDetail()">✕</button>
+  <div class="detail-date" id="detailDate"></div>
+  <div id="detailContent"></div>
+</div>
+
+<!-- Add event modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <h2>Nouvel événement</h2>
+    <div class="form-group">
+      <label class="form-label">Titre</label>
+      <input class="form-input" id="evTitle" type="text" placeholder="Ex : Natation – Emma" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" id="evDate" type="date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Heure</label>
+        <input class="form-input" id="evTime" type="time" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Catégorie</label>
+      <select class="form-select" id="evType">
+        <option value="enfant">Emploi du temps enfants</option>
+        <option value="reunion">Réunion parents</option>
+        <option value="perso">Calendrier personnel</option>
+        <option value="vacances">Vacances scolaires</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Note (optionnel)</label>
+      <input class="form-input" id="evNote" type="text" placeholder="Lieu, intervenants…" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save" onclick="saveEvent()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Connect guide modal -->
+<div class="modal-overlay" id="connectOverlay" onclick="closeConnect(event)">
+  <div class="modal" style="width:480px">
+    <h2>Connecter une source</h2>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:20px; line-height:1.6">
+      Voir le fichier <strong>INTEGRATION_GUIDE.md</strong> fourni pour les instructions complètes.<br>
+      Voici un résumé rapide :
+    </p>
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <div style="padding:12px 14px; background:var(--surface2); border-radius:var(--r-md); border:1px solid var(--border)">
+        <div style="font-weight:600; font-size:13px; margin-bottom:4px">📅 Google Calendar</div>
+        <div style="font-size:12px; color:var(--text2)">Récupérer l'URL .ics dans Paramètres &gt; Intégrer le calendrier, puis coller dans <code>config.js</code>.</div>
+      </div>
+      <div style="padding:12px 14px; background:var(--surface2); border-radius:var(--r-md); border:1px solid var(--border)">
+        <div style="font-weight:600; font-size:13px; margin-bottom:4px">🏢 Outlook / Microsoft 365</div>
+        <div style="font-size:12px; color:var(--text2)">Exporter via Outlook Web &gt; Paramètres &gt; Afficher tous les paramètres &gt; Calendrier &gt; Calendriers partagés.</div>
+      </div>
+      <div style="padding:12px 14px; background:var(--surface2); border-radius:var(--r-md); border:1px solid var(--border)">
+        <div style="font-weight:600; font-size:13px; margin-bottom:4px">🏫 Calendrier scolaire (.ics)</div>
+        <div style="font-size:12px; color:var(--text2)">Demander le lien .ics à l'administration ou le trouver dans l'ENT (Pronote, EcoleDirecte…).</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-save" onclick="closeConnect()">Compris !</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAYS_SHORT = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+let curDate = new Date(2026,3,1);
+let selectedDay = null;
+let currentView = 'month';
+
+const SOURCES = [
+  { id:'enfant',   label:'Emploi du temps enfants', color:'#1F6FEB' },
+  { id:'reunion',  label:'Réunions parents',         color:'#7C3AED' },
+  { id:'perso',    label:'Calendrier personnel',     color:'#059669' },
+  { id:'vacances', label:'Vacances scolaires',       color:'#D97706' },
+];
+let activeS = { enfant:true, reunion:true, perso:true, vacances:true };
+
+let EVENTS = [
+  { id:1,  date:'2026-04-03', title:'Natation – Emma',           type:'enfant',   time:'17h00', source:'Emploi du temps', note:'' },
+  { id:2,  date:'2026-04-04', title:'Réunion de classe',         type:'reunion',  time:'9h00',  source:'École', note:'Salle B12' },
+  { id:3,  date:'2026-04-07', title:'Dentiste – Tom',            type:'perso',    time:'14h30', source:'Perso', note:'' },
+  { id:4,  date:'2026-04-07', title:'Foot – Tom',                type:'enfant',   time:'16h00', source:'Emploi du temps', note:'' },
+  { id:5,  date:'2026-04-08', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'Académie Lille' },
+  { id:6,  date:'2026-04-09', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'' },
+  { id:7,  date:'2026-04-10', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'' },
+  { id:8,  date:'2026-04-10', title:'Sortie famille – Parc',     type:'perso',    time:'10h00', source:'Perso', note:'Pique-nique prévu' },
+  { id:9,  date:'2026-04-11', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'' },
+  { id:10, date:'2026-04-12', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'' },
+  { id:11, date:'2026-04-13', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'' },
+  { id:12, date:'2026-04-14', title:'Réunion parents d\'élèves', type:'reunion',  time:'18h30', source:'École', note:'Obligatoire' },
+  { id:13, date:'2026-04-14', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'' },
+  { id:14, date:'2026-04-15', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'' },
+  { id:15, date:'2026-04-16', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'' },
+  { id:16, date:'2026-04-17', title:'Vacances de printemps',     type:'vacances', time:'',      source:'Calendrier scolaire', note:'' },
+  { id:17, date:'2026-04-17', title:'Natation – Emma',           type:'enfant',   time:'17h00', source:'Emploi du temps', note:'' },
+  { id:18, date:'2026-04-21', title:'Rentrée scolaire',          type:'enfant',   time:'8h30',  source:'Calendrier scolaire', note:'' },
+  { id:19, date:'2026-04-22', title:'Gym – Maman',               type:'perso',    time:'19h00', source:'Perso', note:'' },
+  { id:20, date:'2026-04-23', title:'Natation – Emma',           type:'enfant',   time:'17h00', source:'Emploi du temps', note:'' },
+  { id:21, date:'2026-04-24', title:'Réunion projet – Travail',  type:'perso',    time:'10h00', source:'Perso', note:'Visio' },
+  { id:22, date:'2026-04-25', title:'Foot – Tom',                type:'enfant',   time:'16h00', source:'Emploi du temps', note:'Match officiel' },
+  { id:23, date:'2026-04-28', title:'Anniversaire Papa',         type:'perso',    time:'',      source:'Perso', note:'' },
+  { id:24, date:'2026-04-30', title:'Spectacle de l\'école',     type:'reunion',  time:'15h00', source:'École', note:'Gymnase municipal' },
+];
+
+let nextId = 100;
+
+function fmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getEvsForDate(d) {
+  const s = fmtDate(d);
+  return EVENTS.filter(e => e.date === s && activeS[e.type]);
+}
+
+function changeMonth(delta) {
+  curDate = new Date(curDate.getFullYear(), curDate.getMonth() + delta, 1);
+  selectedDay = null;
+  closeDetail();
+  render();
+}
+
+function goToday() {
+  curDate = new Date();
+  selectedDay = new Date();
+  render();
+  openDetail(selectedDay);
+}
+
+function setView(v) {
+  currentView = v;
+  document.getElementById('tab-month').className = 'view-tab' + (v==='month'?' active':'');
+  document.getElementById('tab-week').className  = 'view-tab' + (v==='week' ?' active':'');
+  document.getElementById('monthView').style.display = v==='month' ? 'block' : 'none';
+  document.getElementById('weekView').style.display  = v==='week'  ? 'block' : 'none';
+  render();
+}
+
+function toggleSource(id) {
+  activeS[id] = !activeS[id];
+  renderSources();
+  render();
+  const count = Object.values(activeS).filter(Boolean).length;
+  document.getElementById('activeCount').textContent = count;
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+
+function render() {
+  const m = curDate.getMonth();
+  const y = curDate.getFullYear();
+  document.getElementById('mainTitle').textContent = MONTHS_FR[m] + ' ' + y;
+  renderMiniCal();
+  if (currentView === 'month') renderMonth();
+  else renderWeek();
+}
+
+function renderSources() {
+  const el = document.getElementById('sourcesList');
+  el.innerHTML = SOURCES.map(s => `
+    <div class="source-item ${activeS[s.id]?'active':''}" onclick="toggleSource('${s.id}')">
+      <div class="source-dot" style="background:${s.color}; opacity:${activeS[s.id]?1:0.3}"></div>
+      <span class="source-name">${s.label}</span>
+      <div class="source-toggle"></div>
+    </div>
+  `).join('');
+}
+
+function renderMiniCal() {
+  const today = new Date();
+  const y = curDate.getFullYear(), m = curDate.getMonth();
+  document.getElementById('miniLabel').textContent = MONTHS_FR[m].substring(0,3) + ' ' + y;
+  let first = new Date(y, m, 1).getDay();
+  if (first === 0) first = 7;
+  const dim = new Date(y, m+1, 0).getDate();
+  const prevDim = new Date(y, m, 0).getDate();
+  let html = DAYS_SHORT.map(d => `<div class="mini-day-name">${d[0]}</div>`).join('');
+  let cells = [];
+  for (let i = first-1; i > 0; i--) cells.push({d: prevDim-i+1, cur:false});
+  for (let i = 1; i <= dim; i++) cells.push({d:i, cur:true});
+  while (cells.length % 7 !== 0) cells.push({d: cells.length - dim - (first-1) + 1, cur:false});
+  for (const c of cells) {
+    const date = new Date(y, c.cur ? m : (c.d < 15 ? m+1 : m-1), c.d);
+    const isT = date.toDateString() === today.toDateString();
+    const isSel = selectedDay && date.toDateString() === selectedDay.toDateString();
+    const hasEv = getEvsForDate(date).length > 0;
+    html += `<div class="mini-cell${isT?' today':''}${isSel&&!isT?' selected':''}${hasEv?' has-event':''}${!c.cur?' other-month':''}"
+      onclick="selectDay(new Date(${date.getFullYear()},${date.getMonth()},${date.getDate()}))">${c.d}</div>`;
+  }
+  document.getElementById('miniGrid').innerHTML = html;
+}
+
+function renderMonth() {
+  const today = new Date();
+  const y = curDate.getFullYear(), m = curDate.getMonth();
+  let first = new Date(y, m, 1).getDay(); if (first === 0) first = 7;
+  const dim = new Date(y, m+1, 0).getDate();
+  const prevDim = new Date(y, m, 0).getDate();
+  let cells = [];
+  for (let i = first-1; i > 0; i--) cells.push({ d:prevDim-i+1, m:m-1, y, cur:false });
+  for (let i = 1; i <= dim; i++) cells.push({ d:i, m, y, cur:true });
+  while (cells.length % 7 !== 0) cells.push({ d: cells.length - dim - (first-1) + 1, m:m+1, y, cur:false });
+
+  let html = '';
+  for (const c of cells) {
+    const date = new Date(c.y, c.m, c.d);
+    const isToday = date.toDateString() === today.toDateString();
+    const isSel = selectedDay && date.toDateString() === selectedDay.toDateString();
+    const evs = getEvsForDate(date);
+    const show = evs.slice(0, 3);
+    const more = evs.length - 3;
+    html += `<div class="month-cell${!c.cur?' other-month':''}${isToday?' today':''}${isSel?' selected':''}"
+      onclick="selectDay(new Date(${date.getFullYear()},${date.getMonth()},${date.getDate()}))">
+      <div class="cell-day-num">${c.d}</div>
+      ${show.map(e => `<span class="cell-event ${e.type}">${e.time ? e.time+' ' : ''}${e.title}</span>`).join('')}
+      ${more > 0 ? `<div class="cell-more">+${more} autre${more>1?'s':''}</div>` : ''}
+    </div>`;
+  }
+  document.getElementById('monthGrid').innerHTML = html;
+}
+
+function renderWeek() {
+  const today = new Date();
+  const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
+  const mon = new Date(today); mon.setDate(today.getDate() - dow);
+  const days = Array.from({length:7}, (_,i) => { const d=new Date(mon); d.setDate(mon.getDate()+i); return d; });
+
+  let hdr = '<div></div>';
+  for (const d of days) {
+    const isT = d.toDateString() === today.toDateString();
+    hdr += `<div class="week-day-header${isT?' today':''}">
+      <div class="week-day-name">${DAYS_SHORT[d.getDay()===0?6:d.getDay()-1]}</div>
+      <div class="week-day-num">${d.getDate()}</div>
+    </div>`;
+  }
+  document.getElementById('weekHeader').innerHTML = hdr;
+
+  const hours = ['8h','9h','10h','11h','12h','13h','14h','15h','16h','17h','18h','19h'];
+  let body = '';
+  for (const hr of hours) {
+    body += `<div class="week-time">${hr}</div>`;
+    for (const d of days) {
+      const evs = getEvsForDate(d).filter(e => e.time && e.time.startsWith(hr.replace('h00','h').replace('h','h')));
+      body += `<div class="week-slot">${evs.map(e => `<div class="week-event ${e.type}">${e.title}</div>`).join('')}</div>`;
+    }
+  }
+  document.getElementById('weekBody').innerHTML = body;
+}
+
+// ── Interactions ────────────────────────────────────────────────────────────
+
+function selectDay(d) {
+  if (selectedDay && selectedDay.toDateString() === d.toDateString()) {
+    selectedDay = null; closeDetail(); render(); return;
+  }
+  selectedDay = d;
+  render();
+  openDetail(d);
+}
+
+function openDetail(d) {
+  const label = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('detailDate').textContent = label.charAt(0).toUpperCase() + label.slice(1);
+  const evs = getEvsForDate(d);
+  const colors = { enfant:'#1F6FEB', reunion:'#7C3AED', perso:'#059669', vacances:'#D97706' };
+  if (evs.length === 0) {
+    document.getElementById('detailContent').innerHTML = '<div class="empty-day">Aucun événement ce jour.</div>';
+  } else {
+    document.getElementById('detailContent').innerHTML = evs.map(e => `
+      <div class="detail-ev">
+        <div class="detail-ev-color" style="background:${colors[e.type]}"></div>
+        <div>
+          <div class="detail-ev-title">${e.title}</div>
+          <div class="detail-ev-meta">${e.time || 'Toute la journée'}${e.note ? ' — ' + e.note : ''}</div>
+          <div class="detail-ev-source">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+            ${e.source}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('detailPanel').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('open');
+}
+
+// Modal
+function openModal() {
+  const today = new Date();
+  document.getElementById('evDate').value = fmtDate(selectedDay || today);
+  document.getElementById('evTitle').value = '';
+  document.getElementById('evTime').value = '';
+  document.getElementById('evNote').value = '';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modalOverlay'))
+    document.getElementById('modalOverlay').classList.remove('open');
+}
+function saveEvent() {
+  const title = document.getElementById('evTitle').value.trim();
+  if (!title) { document.getElementById('evTitle').focus(); return; }
+  const ev = {
+    id: nextId++,
+    date: document.getElementById('evDate').value,
+    title,
+    type: document.getElementById('evType').value,
+    time: document.getElementById('evTime').value.replace(':','h') || '',
+    source: 'Manuel',
+    note: document.getElementById('evNote').value.trim(),
+  };
+  EVENTS.push(ev);
+  closeModal();
+  render();
+  showToast('Événement ajouté !');
+  if (selectedDay && fmtDate(selectedDay) === ev.date) openDetail(selectedDay);
+}
+
+function openConnectGuide() {
+  document.getElementById('connectOverlay').classList.add('open');
+}
+function closeConnect(e) {
+  if (!e || e.target === document.getElementById('connectOverlay'))
+    document.getElementById('connectOverlay').classList.remove('open');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Chargement .ics ──────────────────────────────────────────────────────────
+async function loadIcs(url, type, sourceName) {
+  try {
+    const proxy = 'https://corsproxy.io/?' + encodeURIComponent(url);
+    const res = await fetch(proxy);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const blocks = text.split('BEGIN:VEVENT');
+    const imported = [];
+    for (let i = 1; i < blocks.length; i++) {
+      const b = blocks[i];
+      const get = k => { const m = b.match(new RegExp(k + '[^:]*:([^\\r\\n]+')); return m ? m[1].trim() : ''; };
+      const dt = get('DTSTART');
+      if (!dt) continue;
+      const dateStr = dt.replace(/T.*/, '');
+      const date = `${dateStr.substring(0,4)}-${dateStr.substring(4,6)}-${dateStr.substring(6,8)}`;
+      const timeRaw = dt.includes('T') ? dt.replace(/.*T/, '') : '';
+      const time = timeRaw.length >= 4 ? `${timeRaw.substring(0,2)}h${timeRaw.substring(2,4)}` : '';
+      const title = get('SUMMARY');
+      if (!title || !date) continue;
+      imported.push({
+        id: 'ics_' + Math.random().toString(36).slice(2),
+        date, title, type, time,
+        source: sourceName,
+        note: get('DESCRIPTION'),
+      });
+    }
+    EVENTS = [...EVENTS.filter(e => e.source !== sourceName), ...imported];
+    render();
+    const syncEl = document.querySelector('.sync-bar span');
+    if (syncEl) syncEl.textContent = `Synchronisé — ${Object.values(activeS).filter(Boolean).length} sources actives · ${imported.length} événements importés depuis ${sourceName}`;
+    showToast(`✓ ${imported.length} événements chargés depuis ${sourceName}`);
+  } catch(e) {
+    console.warn('Erreur chargement .ics (' + sourceName + ') :', e);
+    showToast('⚠ Impossible de charger ' + sourceName);
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+renderSources();
+render();
+setView('month');
+
+// Chargement Google Calendar de Matteo
+loadIcs(
+  'https://calendar.google.com/calendar/ical/matteobuffey%40gmail.com/private-a6e2440d60d37c02f60ea769c9267e62/basic.ics',
+  'perso',
+  'Google Calendar – Matteo'
+);
+</script>
+</body>
+</html>
