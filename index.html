@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FamilyCal — Calendrier Familial</title>
-  <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display&display=swap" rel="stylesheet" />
   <style>
@@ -1026,8 +1025,8 @@ function showToast(msg) {
 async function loadIcs(url, type, sourceName) {
   try {
     const proxies = [
-      'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
       'https://corsproxy.io/?' + encodeURIComponent(url),
+      'https://thingproxy.freeboard.io/fetch/' + url,
     ];
     let res, lastErr;
     for (const p of proxies) {
@@ -1039,7 +1038,7 @@ async function loadIcs(url, type, sourceName) {
     const imported = [];
     for (let i = 1; i < blocks.length; i++) {
       const b = blocks[i];
-      const get = k => { const m = b.match(new RegExp(k + '[^:]*:([^\\r\\n]+')); return m ? m[1].trim() : ''; };
+      const get = k => { const m = b.match(new RegExp(k + '[^:]*:([^\r\n]+')); return m ? m[1].trim() : ''; };
       const dt = get('DTSTART');
       if (!dt) continue;
       const dateStr = dt.replace(/T.*/, '');
